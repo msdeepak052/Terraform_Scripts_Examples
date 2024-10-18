@@ -1,0 +1,1041 @@
+1. EC2 Creation
+---------------
+
+provider "aws" {
+  region = "ap-south-1"
+}
+resource "aws_instance" "InstanceDK" {
+  count         = 5
+  ami           = "ami-022ce6f32988af5fa"
+  instance_type = "t2.micro"
+  tags = {
+    Name = "InstanceDK-${count.index}"
+  }
+}
+
+-----------------------------------------------------------------------------------------
+
+2. EC2 Creation with var instance_type
+----------------------------------------
+
+provider "aws" {
+  region = "ap-south-1"
+}
+
+resource "aws_instance" "InstanceDK" {
+  count         = 2
+  ami           = "ami-022ce6f32988af5fa"
+  instance_type = var.instance_type
+
+  tags = {
+    Name = "InstanceDKvar-${count.index}"
+  }
+}
+
+variable "instance_type" {
+
+  description = "*"
+  type = string
+  default = "t2.micro"
+  
+}
+
+-----------------------------------------------------------------------------------------
+
+3. EC2 Creation with var on count
+------------------------------------
+
+provider "aws" {
+  region = "ap-south-1"
+}
+
+resource "aws_instance" "InstanceDK" {
+  count         = var.count
+  ami           = "ami-022ce6f32988af5fa"
+  instance_type = var.instance_type
+
+  tags = {
+    Name = "InstanceDKvar-${count.index}"
+  }
+}
+
+variable "instance_type" {
+
+  description = "*"
+  type = string
+  default = "t2.micro"
+  
+}
+
+variable "count" {
+
+  description = "*"
+  type = number
+  default = 3
+  
+}
+
+-----------------------------------------------------------------------------------------
+
+4. Diffrentiating the main.tf and variables.tf
+-----------------------------------------------------
+
+a. main.tf
+-----------
+provider "aws" {
+  region = "ap-south-1"
+}
+
+resource "aws_instance" "InstanceDK" {
+  count         = var.instance_count
+  ami           = "ami-022ce6f32988af5fa"
+  instance_type = var.instance_type
+
+  tags = {
+    Name = "InstanceDKvar-${count.index}"
+  }
+}
+
+b. variables.tf
+----------------
+
+variable "instance_type" {
+
+  description = "*"
+  type = string
+  default = "t2.micro"
+  
+}
+
+variable "instance_count" {
+
+  description = "*"
+  type = number
+  default = 3
+  
+}
+
+
+----------------------------------------------------------------------------------------------------------------------
+
+5. tfvars example
+------------------------------------
+
+a. main.tf
+-----------
+provider "aws" {
+  region = "ap-south-1"
+}
+
+resource "aws_instance" "InstanceDK" {
+  count         = var.instance_count
+  ami           = "ami-022ce6f32988af5fa"
+  instance_type = var.instance_type
+
+  tags = {
+    # Conditional logic to set Name based on instance_type
+    Name = var.instance_type == "t2.medium" ? "UAT" : "DEV"
+  }
+}
+
+
+b. variables.tf
+----------------
+
+variable "instance_type" {
+  
+}
+
+variable "instance_count" {
+  
+}
+
+c. dev/tfvars
+-------------
+
+instance_count = 1
+instance_type  = "t2.micro"
+
+4. uat.tfvars
+-------------
+
+instance_count = 2
+instance_type  = "t2.medium"
+
+command to execute
+-------------------
+
+terraform apply -var-file="dev.tfvars"
+
+--------------------------------------------------------------------------------------------
+
+
+7. cli example
+------------------------------------
+
+a. main.tf
+-----------
+provider "aws" {
+  region = "ap-south-1"
+}
+
+resource "aws_instance" "InstanceDK" {
+  count         = var.instance_count
+  ami           = "ami-022ce6f32988af5fa"
+  instance_type = var.instance_type
+
+  tags = {
+    # Conditional logic to set Name based on instance_type
+    Name = var.instance_type == "t2.medium" ? "UAT" : "DEV"
+  }
+}
+
+
+b. variables.tf
+----------------
+
+variable "instance_type" {
+  
+}
+
+variable "instance_count" {
+  
+}
+
+
+if we execute like "terraform apply" then we need to give the values on the exceution 
+
+and if we want to pass the variable as a part of command line 
+
+terraform aaply -var="instance_type=t2.micro" -var="instance_count=1"
+
+
+---------------------------------------------------------------------------------------------------
+
+8. Output module
+
+provider "aws" {
+  region = "ap-south-1"
+}
+
+resource "aws_instance" "InstanceDK" {
+  count         = 1
+  ami           = "ami-022ce6f32988af5fa"
+  instance_type = "t2.micro"
+
+  tags = {
+    # Conditional logic to set Name based on instance_type
+    Name = "UAT-${count.index}"
+  }
+}
+
+output "public-ip-op" {
+  value = aws_instance.InstanceDK[*].public_ip
+  
+}
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+provider "aws" {
+  region = "ap-south-1"
+}
+
+resource "aws_instance" "InstanceDK" {
+  count         = 2  # Change this to the desired number of instances
+  ami           = "ami-022ce6f32988af5fa"
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "UAT-${count.index}"
+  }
+}
+
+output "public_ips" {
+  value = {
+    for i in range(length(aws_instance.InstanceDK)) :
+    "UAT-${i}" => aws_instance.InstanceDK[i].public_ip
+  }
+}
+ 
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+provider "aws" {
+  region = "ap-south-1"
+}
+
+resource "aws_instance" "InstanceDK" {
+  count         = 2  # Change this to the desired number of instances
+  ami           = "ami-022ce6f32988af5fa"
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "UAT-${count.index}"
+  }
+}
+
+output "instance_details" {
+  value = {
+    for i in range(length(aws_instance.InstanceDK)) :
+    "UAT-${i}" => {
+      Public_IP  = aws_instance.InstanceDK[i].public_ip,
+      Private_IP = aws_instance.InstanceDK[i].private_ip,
+      Public_DNS = aws_instance.InstanceDK[i].public_dns,
+      Private_DNS = aws_instance.InstanceDK[i].private_dns
+    }
+  }
+}
+ 
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+provider "aws" {
+  region = "ap-south-1"
+}
+
+resource "aws_instance" "InstanceDK" {
+  count         = 2  # Change this to the desired number of instances
+  ami           = "ami-022ce6f32988af5fa"
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "UAT-${count.index}"
+  }
+}
+
+output "public_ips" {
+  value = {
+    for i in range(length(aws_instance.InstanceDK)) :
+    "UAT-${i}" => [aws_instance.InstanceDK[i].public_ip,aws_instance.InstanceDK[i].private_ip,aws_instance.InstanceDK[i].public_dns,aws_instance.InstanceDK[i].private_dns]
+  }
+}
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+9. AWS S3 and EBS 
+-----------------
+
+provider "aws" {
+  region = "ap-south-1"
+}
+
+resource "aws_s3_bucket" "deepak_bucket" {
+  bucket = "deepaks3bucket2024yadav007"
+
+  versioning {
+    enabled = true
+  }
+
+  tags = {
+    Name        = "Deepak S3 Bucket"
+    Environment = "Dev"
+  }
+}
+
+resource "aws_ebs_volume" "deepak_ebs" {
+  size = 10
+  availability_zone = "ap-south-1a"
+  tags = {
+    Name        = "Deepak EBS Volume"
+    Environment = "Dev"
+  }
+  
+}
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+
+10. IAM User creatin , policy, attachment
+
+provider "aws" {
+  region = "ap-south-1"
+}
+
+# Create an IAM user
+resource "aws_iam_user" "my_iam_user" {
+  name = "my-iam-user" # Specify the IAM user name
+
+  tags = {
+    Name        = "My IAM User"
+    Environment = "Dev"
+  }
+}
+
+# Create an IAM policy
+resource "aws_iam_policy" "my_iam_policy" {
+  name        = "MyIAMPolicy"
+  description = "A policy for my IAM user"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:PutObject",
+          "s3:GetObject"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Attach the policy to the user
+resource "aws_iam_user_policy_attachment" "my_policy_attachment" {
+  user       = aws_iam_user.my_iam_user.name
+  policy_arn = aws_iam_policy.my_iam_policy.arn
+}
+
+# Create access keys for the IAM user
+resource "aws_iam_access_key" "my_access_key" {
+  user = aws_iam_user.my_iam_user.name
+}
+
+# Output the access key and secret
+output "access_key_id" {
+  value     = aws_iam_access_key.my_access_key.id
+  sensitive = true
+}
+
+output "secret_access_key" {
+  value     = aws_iam_access_key.my_access_key.secret
+  sensitive = true
+}
+ 
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+11. Taint
+------------
+provider "aws" {
+  region = "ap-south-1"
+}
+resource "aws_instance" "example" {
+  ami           = "ami-022ce6f32988af5fa" # Replace with a valid AMI ID
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "ExampleInstance"
+  }
+}
+
+
+If its tainted, first it destroys then create a new instances or resources
+terraform taint aws_instance.example
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+12. Lifecycle
+-------------
+
+provider "aws" {
+  region = "ap-south-1"
+}
+
+resource "aws_instance" "example" {
+  ami           = "ami-022ce6f32988af5fa" # Replace with a valid AMI ID
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "ExampleInstance"
+  }
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}  
+
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+provider "aws" {
+  region = "ap-south-1"
+}
+
+resource "aws_instance" "web_server" {
+  ami           = "ami-078264b8ba71bc45e" # Replace with a valid AMI ID
+  instance_type = "t2.micro"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+} 
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+provider "aws" {
+  region = "ap-south-1"
+}
+
+
+resource "aws_instance" "app_server" {
+  ami           = "ami-022ce6f32988af5fa" # Replace with a valid AMI ID
+  instance_type = "t2.micro"
+  tags = {
+    Environment = "production"
+  }
+
+  lifecycle {
+    ignore_changes = [tags]
+  }
+}
+
+
+Once the resources are created change the tag and redeploy
+
+provider "aws" {
+  region = "ap-south-1"
+}
+
+
+resource "aws_instance" "app_server" {
+  ami           = "ami-022ce6f32988af5fa" # Replace with a valid AMI ID
+  instance_type = "t2.micro"
+  tags = {
+    Environment = "Dev"
+  }
+
+  lifecycle {
+    ignore_changes = [tags]
+  }
+}
+Even though changes are done terraform is not applying
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+13. VPC Creation
+------------------
+
+# Provider configuration
+provider "aws" {
+  region = "ap-south-1"  # Changed to ap-south-1 (Mumbai region)
+}
+
+# VPC creation
+resource "aws_vpc" "deepak_vpc" {
+  cidr_block           = "10.0.0.0/24"  # VPC CIDR block
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+  tags = {
+    Name = "deepak-vpc"
+  }
+}
+
+# Public Subnet 1
+resource "aws_subnet" "public_subnet_1" {
+  vpc_id            = aws_vpc.deepak_vpc.id
+  cidr_block        = "10.0.0.0/26"    # First public subnet CIDR
+  map_public_ip_on_launch = true       # create public ip
+  availability_zone = "ap-south-1a"    # First availability zone
+  
+  tags = {
+    Name = "deepak-public-subnet-1"
+  }
+}
+
+# Public Subnet 2
+resource "aws_subnet" "public_subnet_2" {
+  vpc_id            = aws_vpc.deepak_vpc.id
+  cidr_block        = "10.0.0.64/26"   # Second public subnet CIDR
+  map_public_ip_on_launch = true       # # create public ip
+  availability_zone = "ap-south-1b"    # Second availability zone
+  
+  tags = {
+    Name = "deepak-public-subnet-2"
+  }
+}
+
+# Private Subnet 1
+resource "aws_subnet" "private_subnet_1" {
+  vpc_id            = aws_vpc.deepak_vpc.id
+  cidr_block        = "10.0.0.128/26"  # First private subnet CIDR
+  availability_zone = "ap-south-1a"    # First availability zone
+  
+  tags = {
+    Name = "deepak-private-subnet-1"
+  }
+}
+
+# Private Subnet 2
+resource "aws_subnet" "private_subnet_2" {
+  vpc_id            = aws_vpc.deepak_vpc.id
+  cidr_block        = "10.0.0.192/26"  # Second private subnet CIDR
+  availability_zone = "ap-south-1b"    # Second availability zone
+  
+  tags = {
+    Name = "deepak-private-subnet-2"
+  }
+}
+
+# Internet Gateway
+resource "aws_internet_gateway" "deepak_igw" {
+  vpc_id = aws_vpc.deepak_vpc.id
+  
+  tags = {
+    Name = "deepak-internet-gateway"
+  }
+}
+
+# Route Table for Public Subnets
+resource "aws_route_table" "public_route_table" {
+  vpc_id = aws_vpc.deepak_vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.deepak_igw.id
+  }
+
+  tags = {
+    Name = "deepak-public-route-table"
+  }
+}
+
+# Associate Public Subnet 1 with Route Table
+resource "aws_route_table_association" "public_route_association_1" {
+  subnet_id      = aws_subnet.public_subnet_1.id
+  route_table_id = aws_route_table.public_route_table.id
+}
+
+# Associate Public Subnet 2 with Route Table
+resource "aws_route_table_association" "public_route_association_2" {
+  subnet_id      = aws_subnet.public_subnet_2.id
+  route_table_id = aws_route_table.public_route_table.id
+}
+
+# Security Group for EC2 allowing all traffic
+resource "aws_security_group" "deepak_sg" {
+  vpc_id = aws_vpc.deepak_vpc.id
+  
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"      # Allows all traffic (TCP, UDP, ICMP, etc.)
+    cidr_blocks = ["0.0.0.0/0"] # Allow all traffic from anywhere
+  }
+
+
+  /* ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["10.0.0.0/24"]  # Allows all inbound traffic within the VPC CIDR range
+  } */
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "deepak-security-group"
+  }
+}
+
+output "security_group_id" {
+  value = aws_security_group.deepak_sg.id
+}
+
+# EC2 Instance
+
+resource "aws_instance" "deepak_ec2" {
+  ami           = "ami-022ce6f32988af5fa" # Replace with your preferred AMI
+  instance_type = "t2.micro"
+
+  subnet_id              = aws_subnet.public_subnet_1.id # Launch in public subnet 1
+  security_groups        = [aws_security_group.deepak_sg.id] # Use ID instead of name
+  associate_public_ip_address = true
+
+  # Dependency on security group
+   depends_on = [
+    aws_security_group.deepak_sg,
+    aws_subnet.public_subnet_1,
+    aws_subnet.public_subnet_2
+  ]
+
+  tags = {
+    Name = "deepak-ec2"
+  }
+}
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+14. locals
+----------
+
+provider "aws" {
+  region = "ap-south-1"
+}
+locals{
+  env = "test"
+}
+resource "aws_instance" "InstanceDK" {
+  count         = 5
+  ami           = "ami-022ce6f32988af5fa"
+  instance_type = "t2.micro"
+  tags = {
+    Name = "${local.env}-ec2"
+  }
+}
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+15. Workspaces
+----------------
+
+
+terraform workspace new <workspace_name>
+Example:
+terraform workspace new dev
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+terraform workspace list
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+terraform workspace select <workspace_name>
+
+terraform workspace select prod
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+
+terraform workspace show
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+terraform workspace delete <workspace_name>
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+terraform workspace select default
+terraform workspace delete dev
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+16. terraformg graph
+--------------------
+
+powershell
+----------
+
+terraform graph | Set-Content -Path graph.dot
+dot -Tpng graph.dot -o graph.png
+
+
+Linux
+------
+
+terraform graph > graph.dot
+
+Install Graphviz (if not already installed): Install Graphviz to convert the .dot file into an image:
+
+
+sudo apt-get install graphviz
+
+Convert the .dot file to a PNG image: Use the dot command to generate the PNG file from the .dot file:
+
+
+dot -Tpng graph.dot -o graph.png
+
+View the PNG image: You can open the graph.png file using an image viewer on Ubuntu, like xdg-open:
+
+
+xdg-open graph.png
+
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+Graphviz online
+--------------
+
+share graph dot output
+
+https://dreampuf.github.io/GraphvizOnline
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+17. terraform Provider alias
+
+provider "aws" {
+  region = "us-east-1"
+  alias  = "east"
+}
+
+provider "aws" {
+  region = "us-west-2"
+  alias  = "west"
+}
+
+resource "aws_instance" "example_east" {
+  provider = aws.east
+  ami      = "ami-12345678"
+  instance_type = "t2.micro"
+}
+
+resource "aws_instance" "example_west" {
+  provider = aws.west
+  ami      = "ami-87654321"
+  instance_type = "t2.micro"
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+18. Data Types
+-------------
+
+1. String – AWS Region Example
+-------------------------------
+A common use case for string is defining the AWS region for your infrastructure.
+variable "aws_region" {
+  type    = string
+  default = "us-west-2"
+}
+
+provider "aws" {
+  region = var.aws_region
+}
+Here, we define a string variable aws_region to set the AWS region where resources will be provisioned. The provider block uses this variable to specify the region.
+
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+2. Number – EC2 Instance Count
+------------------------------
+
+Using number to set the number of EC2 instances in a real-world deployment:
+variable "instance_count" {
+  type    = number
+  default = 2
+}
+
+resource "aws_instance" "app_server" {
+  count         = var.instance_count
+  ami           = "ami-12345678"
+  instance_type = "t3.micro"
+}
+
+output "instance_ids" {
+  value = aws_instance.app_server.*.id
+}
+Here, instance_count defines how many EC2 instances will be created. We use the count parameter to dynamically create the specified number of instances.
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+3. Bool – Enabling CloudWatch Monitoring
+---------------------------------------
+
+A real use case for a bool is enabling or disabling AWS CloudWatch monitoring for EC2 instances.
+variable "enable_cloudwatch" {
+  type    = bool
+  default = true
+}
+
+resource "aws_instance" "web" {
+  ami                    = "ami-12345678"
+  instance_type          = "t2.micro"
+  monitoring             = var.enable_cloudwatch
+}
+
+output "monitoring_status" {
+  value = var.enable_cloudwatch ? "CloudWatch is enabled" : "CloudWatch is disabled"
+}
+Here, enable_cloudwatch is a Boolean variable that controls whether detailed monitoring is enabled for EC2 instances.
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+4. List – List of Availability Zones
+------------------------------------
+
+When you want to deploy across multiple availability zones, you would use a list.
+variable "az_list" {
+  type    = list(string)
+  default = ["us-east-1a", "us-east-1b", "us-east-1c"]
+}
+
+resource "aws_subnet" "subnet" {
+  count = length(var.az_list)
+  vpc_id = aws_vpc.main.id
+  cidr_block = cidrsubnet(aws_vpc.main.cidr_block, 8, count.index)
+  availability_zone = var.az_list[count.index]
+}
+
+output "az_list" {
+  value = var.az_list
+}
+In this example, az_list is a list of availability zones, and we create one subnet in each of these zones using the count parameter.
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+5. Map – Instance Types for Different Environments
+---------------------------------------------------
+
+A map can be used to define instance types for different environments (e.g., development, production):
+variable "instance_type_map" {
+  type = map(string)
+  default = {
+    "dev"  = "t2.micro"
+    "prod" = "m5.large"
+  }
+}
+
+resource "aws_instance" "app_server" {
+  ami           = "ami-12345678"
+  instance_type = var.instance_type_map[var.environment]
+}
+
+variable "environment" {
+  type    = string
+  default = "dev"
+}
+
+output "instance_type" {
+  value = var.instance_type_map[var.environment]
+}
+In this case, instance_type_map is a map where different instance types are assigned based on the environment (dev or prod).
+
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+6. Set – Security Group Ingress IPs
+-------------------------------------
+
+
+A set is useful when defining a list of unique IPs for security group rules, ensuring no duplicates.
+variable "allowed_ips" {
+  type = set(string)
+  default = ["192.168.1.1/32", "203.0.113.0/24"]
+}
+
+resource "aws_security_group" "web_sg" {
+  name = "web_sg"
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = var.allowed_ips
+  }
+}
+Here, allowed_ips is a set of IPs that are granted access to port 80. The set ensures that the same IP cannot be added multiple times.
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+7. Object – Complex AWS EC2 Instance Configuration
+--------------------------------------------------
+
+An object can be used to manage complex configurations like EC2 instance attributes:
+variable "ec2_instance_config" {
+  type = object({
+    ami           = string
+    instance_type = string
+    ebs_optimized = bool
+    key_name      = string
+  })
+  
+  default = {
+    ami           = "ami-12345678"
+    instance_type = "t3.large"
+    ebs_optimized = true
+    key_name      = "my-key"
+  }
+}
+
+resource "aws_instance" "app_server" {
+  ami           = var.ec2_instance_config.ami
+  instance_type = var.ec2_instance_config.instance_type
+  ebs_optimized = var.ec2_instance_config.ebs_optimized
+  key_name      = var.ec2_instance_config.key_name
+}
+In this example, ec2_instance_config is an object that stores multiple attributes related to the EC2 instance. This keeps all instance-related properties organized in one place.
+
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+8. Tuple – Defining a Load Balancer with Multiple Types
+-------------------------------------------------------
+
+A tuple can be useful for handling multiple types of data, such as a list with mixed data types:
+variable "load_balancer_settings" {
+  type = tuple([string, number, bool])
+  default = ["app-lb", 80, true]
+}
+
+resource "aws_lb" "app_lb" {
+  name               = element(var.load_balancer_settings, 0)
+  internal           = element(var.load_balancer_settings, 2)
+  load_balancer_type = "application"
+
+  listener {
+    port     = element(var.load_balancer_settings, 1)
+    protocol = "HTTP"
+  }
+}
+
+output "lb_details" {
+  value = var.load_balancer_settings
+}
+Here, load_balancer_settings is a tuple containing the load balancer’s name, port number, and whether it is internal, all different data types.
+
+
+9. Object Map example
+---------------------
+
+# Define a variable for a list of maps representing EC2 instances
+
+variable "ec2_instances" {
+  description = "List of EC2 instance configurations"
+  type = list(object({
+    ami           = string  # Amazon Machine Image ID
+    instance_type = string  # Instance type (e.g., t2.micro)
+    tags          = map(string)  # Tags for the instance
+  }))
+  default = [
+    {
+      ami           = "ami-12345678"  # Example AMI ID for the first instance
+      instance_type = "t2.micro"       # Instance type for the first instance
+      tags = {                        # Tags for the first instance
+        Name = "WebServer1"
+        Env  = "Production"
+      }
+    },
+    {
+      ami           = "ami-87654321"  # Example AMI ID for the second instance
+      instance_type = "t2.medium"      # Instance type for the second instance
+      tags = {                        # Tags for the second instance
+        Name = "DatabaseServer1"
+        Env  = "Production"
+      }
+    },
+    {
+      ami           = "ami-abcdef12"  # Example AMI ID for the third instance
+      instance_type = "t2.small"       # Instance type for the third instance
+      tags = {                        # Tags for the third instance
+        Name = "WebServer2"
+        Env  = "Staging"
+      }
+    }
+  ]
+}
+
+# Create EC2 instances based on the variable
+
+resource "aws_instance" "ec2" {
+  count         = length(var.ec2_instances)  # Create one instance per configuration
+  ami           = var.ec2_instances[count.index].ami
+  instance_type = var.ec2_instances[count.index].instance_type
+
+  tags = var.ec2_instances[count.index].tags  # Set tags for the instance
+
+  # Optionally, you can specify additional parameters like subnet_id, security_groups, etc.
+}
+
+output "instance_ids" {
+  value = aws_instance.ec2[*].id  # Output the IDs of the created instances
+}
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
